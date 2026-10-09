@@ -124,3 +124,17 @@ pg_restore -h localhost -U intema_app -d intema_erp_restaurado backups/intema_er
 - Fase 3: cotizaciones y conversión a OIT.
 - Fase 4: diseño, producción, tiempos, calidad, adjuntos y reprocesos.
 - Fase 5: dashboard operativo, exportación Excel/PDF y reportes.
+
+## Despliegue de API web (Supabase + Render)
+
+El archivo `render.yaml` define el servicio Docker de FastAPI en Render. Este archivo no crea el proyecto Supabase ni configura secretos por sí solo.
+
+1. Crea un proyecto PostgreSQL en Supabase y espera a que la base esté lista.
+2. En Supabase, abre **Connect** y copia la cadena de conexión para la API. Usa el modo compatible con tu proveedor y red; el backend usa SQLAlchemy con psycopg 3, por lo que la URL debe comenzar con `postgresql+psycopg://`. Si Supabase entrega `postgresql://`, cambia únicamente el prefijo a `postgresql+psycopg://`. Mantén la contraseña codificada correctamente si contiene caracteres especiales.
+3. En Render, crea un **Blueprint** desde este repositorio y revisa el servicio definido en `render.yaml`. Configura las variables solicitadas antes de exponer la API.
+4. En Render, define `DATABASE_URL` con la cadena de Supabase, `BACKEND_CORS_ORIGINS` con el origen exacto de Vercel (por ejemplo `https://tu-proyecto.vercel.app`), y `ADMIN_PASSWORD` con una contraseña única y fuerte. Render genera `JWT_SECRET_KEY` automáticamente.
+5. El contenedor ejecuta `alembic upgrade head` y `python -m app.db.init_db` al iniciar. Revisa los logs del primer despliegue; no des por hecho que la migración terminó correctamente hasta ver el servicio saludable.
+6. Comprueba `https://TU-API.onrender.com/api/v1/health` y `https://TU-API.onrender.com/docs`.
+7. En el proyecto Vercel del frontend, configura `NEXT_PUBLIC_API_BASE_URL=https://TU-API.onrender.com/api/v1` y vuelve a desplegar.
+
+**Seguridad:** no publiques archivos `.env`, contraseñas, URLs con credenciales ni claves de Supabase en GitHub o en variables `NEXT_PUBLIC_*`. Cambia la contraseña inicial de administrador antes de usar datos reales. El plan gratuito de un proveedor puede suspender servicios inactivos o tener límites; verifica precios y disponibilidad antes de elegirlo para operación empresarial.
