@@ -1,0 +1,33 @@
+INTEMA ERP/MES - uso sin Docker
+
+0. Para dejar la API automatica en el servidor:
+   Clic derecho en INSTALAR_API_AUTOMATICA_ADMIN.bat
+   Ejecutar como administrador
+
+1. Para prender el servidor/API:
+   Doble clic en INICIAR_SERVIDOR_ERP.bat
+   Si no quieres ver ventana negra:
+   Doble clic en INICIAR_SERVIDOR_ERP_OCULTO.vbs
+
+2. Para crear la app Windows para esta misma PC:
+   Doble clic en COMPILAR_APP_WINDOWS_LOCAL.bat
+
+3. Para crear la app Windows para otras PCs de la empresa:
+   Doble clic en COMPILAR_APP_WINDOWS_SERVIDOR.bat
+   Escribe la IP del servidor, por ejemplo 192.168.1.50
+
+4. La app final queda en:
+   outputs\INTEMA_ERP_WINDOWS
+
+5. Para instalar en una PC:
+   Copia completa la carpeta outputs\INTEMA_ERP_WINDOWS
+   Ejecuta intema_erp_frontend.exe
+
+6. Para abrir la app local con doble clic:
+   Doble clic en ABRIR_APP_ERP_LOCAL.bat
+
+No copies solo el .exe. Copia toda la carpeta, porque Flutter necesita sus DLL y archivos de datos.
+
+Para quitar el arranque automatico:
+   Clic derecho en QUITAR_API_AUTOMATICA_ADMIN.bat
+   Ejecutar como administrador
