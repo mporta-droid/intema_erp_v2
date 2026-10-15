@@ -140,3 +140,43 @@ def test_work_orders_require_authentication(client: TestClient) -> None:
         },
     )
     assert response.status_code == 401
+
+
+
+def test_user_without_work_order_permissions_is_forbidden(client: TestClient) -> None:
+    admin = admin_headers(client)
+    created_user = client.post(
+        "/api/v1/users",
+        headers=admin,
+        json={
+            "full_name": "Usuario sin permisos",
+            "username": "sin.permisos",
+            "email": "sin.permisos@example.test",
+            "password": "PruebaSegura123",
+            "is_active": True,
+            "role_ids": [],
+            "permission_overrides": [],
+        },
+    )
+    assert created_user.status_code == 201
+
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"username_or_email": "sin.permisos", "password": "PruebaSegura123"},
+    )
+    assert login.status_code == 200
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    listed = client.get("/api/v1/mes/work-orders", headers=headers)
+    assert listed.status_code == 403
+
+    created = client.post(
+        "/api/v1/mes/work-orders",
+        headers=headers,
+        json={
+            "client_name": "Cliente de prueba",
+            "description": "OIT por usuario sin permisos",
+            "components": [{"name": "Pieza", "quantity_required": 1}],
+        },
+    )
+    assert created.status_code == 403
