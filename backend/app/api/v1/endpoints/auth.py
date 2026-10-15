@@ -20,14 +20,13 @@ logger = logging.getLogger("intema.auth")
 
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)) -> TokenResponse:
-    logger.info("LOGIN: request recibida username_or_email=%s", payload.username_or_email)
+    logger.info("LOGIN: solicitud recibida")
     try:
-        logger.info("LOGIN: buscando usuario")
+        logger.info("LOGIN: validando credenciales")
         user = authenticate_user(db, payload.username_or_email, payload.password)
-        logger.info("LOGIN: usuario %s", "encontrado" if user else "no encontrado o password invalido")
+        logger.info("LOGIN: autenticación %s", "correcta" if user else "fallida")
 
         if user is None:
-            logger.info("LOGIN: registrando intento fallido")
             write_audit(
                 db,
                 actor=None,
@@ -39,19 +38,14 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
             db.commit()
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario o contraseña incorrectos.")
 
-        logger.info("LOGIN: password correcto")
-        logger.info("LOGIN: registrando auditoria exitosa")
         write_audit(db, actor=user, action="login_success", entity_type="users", entity_id=str(user.id), request=request)
         db.commit()
         db.refresh(user)
-        logger.info("LOGIN: generando token")
-        response = TokenResponse(
+        return TokenResponse(
             access_token=create_access_token(str(user.id)),
             refresh_token=create_refresh_token(str(user.id)),
             user=user_to_read(user),
         )
-        logger.info("LOGIN: respuesta enviada")
-        return response
     except HTTPException:
         raise
     except SQLAlchemyError as exc:

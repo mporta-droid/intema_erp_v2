@@ -132,7 +132,7 @@ def seed_admin_user(db: Session, roles: dict[str, Role]) -> User:
     else:
         admin.full_name = settings.admin_full_name
         admin.email = settings.admin_email
-        admin.position_area = "AdministraciÃ³n"
+        admin.position_area = "Administración"
         admin.is_active = True
         admin.permission_links.clear()
         db.flush()
