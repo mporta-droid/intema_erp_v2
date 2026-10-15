@@ -180,3 +180,17 @@ def test_user_without_work_order_permissions_is_forbidden(client: TestClient) ->
         },
     )
     assert created.status_code == 403
+
+
+
+def test_cors_allows_local_nextjs_development_origin(client: TestClient) -> None:
+    response = client.options(
+        "/api/v1/health",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "authorization,content-type",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
