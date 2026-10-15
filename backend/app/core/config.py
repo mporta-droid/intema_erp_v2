@@ -11,7 +11,12 @@ class Settings(BaseSettings):
     environment: str = "local"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    backend_cors_origins: list[str] = ["http://localhost", "http://localhost:8000"]
+    backend_cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost",
+        "http://localhost:8000",
+    ]
 
     database_url: str = "postgresql+psycopg://intema_app:cambiar_esta_clave@localhost:5432/intema_erp"
 
