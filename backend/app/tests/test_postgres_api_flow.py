@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.core.security import create_access_token
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
@@ -42,6 +43,7 @@ def client():
     finally:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
+        engine.dispose()
 
 
 def admin_headers(client: TestClient) -> dict[str, str]:
@@ -62,6 +64,47 @@ def test_login_me_and_user_list(client: TestClient) -> None:
     users = client.get("/api/v1/users", headers=headers)
     assert users.status_code == 200
     assert users.json()[0]["username"] == "admin"
+
+
+def test_refresh_token_issues_new_session(client: TestClient) -> None:
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"username_or_email": "admin", "password": "Cambiar123!"},
+    )
+    assert login.status_code == 200
+    original = login.json()
+
+    refreshed = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": original["refresh_token"]},
+    )
+    assert refreshed.status_code == 200
+    renewed = refreshed.json()
+    assert renewed["access_token"]
+    assert renewed["refresh_token"]
+    assert renewed["user"]["username"] == "admin"
+
+    me = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {renewed['access_token']}"},
+    )
+    assert me.status_code == 200
+    assert me.json()["username"] == "admin"
+
+
+def test_refresh_rejects_invalid_or_wrong_type_token(client: TestClient) -> None:
+    invalid = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": "not-a-valid-token"},
+    )
+    assert invalid.status_code == 401
+
+    access_token = create_access_token("00000000-0000-0000-0000-000000000001")
+    wrong_type = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": access_token},
+    )
+    assert wrong_type.status_code == 401
 
 
 def test_work_order_create_and_list(client: TestClient) -> None:
