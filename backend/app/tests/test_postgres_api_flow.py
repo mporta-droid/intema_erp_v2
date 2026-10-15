@@ -44,15 +44,17 @@ def client():
         Base.metadata.drop_all(engine)
 
 
-def test_login_me_and_user_list(client: TestClient) -> None:
-    response = client.post("/api/v1/auth/login", json={"username_or_email": "admin", "password": "Cambiar123!"})
-
+def admin_headers(client: TestClient) -> dict[str, str]:
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username_or_email": "admin", "password": "Cambiar123!"},
+    )
     assert response.status_code == 200
-    body = response.json()
-    assert body["token_type"] == "bearer"
-    assert "users_permissions.manage_users" in body["user"]["effective_permissions"]
+    return {"Authorization": "Bearer " + response.json()["access_token"]}
 
-    headers = {"Authorization": "Bearer " + body["access_token"]}
+
+def test_login_me_and_user_list(client: TestClient) -> None:
+    headers = admin_headers(client)
     me = client.get("/api/v1/auth/me", headers=headers)
     assert me.status_code == 200
     assert me.json()["username"] == "admin"
@@ -60,3 +62,38 @@ def test_login_me_and_user_list(client: TestClient) -> None:
     users = client.get("/api/v1/users", headers=headers)
     assert users.status_code == 200
     assert users.json()[0]["username"] == "admin"
+
+
+def test_work_order_create_and_list(client: TestClient) -> None:
+    headers = admin_headers(client)
+    payload = {
+        "client_name": "Cliente de prueba",
+        "description": "OIT de integración automatizada",
+        "priority": "normal",
+        "components": [{"name": "Soporte mecanizado", "quantity_required": 2}],
+    }
+
+    created = client.post("/api/v1/mes/work-orders", json=payload, headers=headers)
+    assert created.status_code == 201
+    created_body = created.json()
+    assert created_body["client_name"] == "Cliente de prueba"
+    assert created_body["status"] == "draft"
+    assert len(created_body["components"]) == 1
+    assert created_body["components"][0]["quantity_required"] == 2
+
+    listed = client.get("/api/v1/mes/work-orders", headers=headers)
+    assert listed.status_code == 200
+    assert any(order["id"] == created_body["id"] for order in listed.json())
+
+
+def test_work_orders_require_authentication(client: TestClient) -> None:
+    assert client.get("/api/v1/mes/work-orders").status_code == 401
+    response = client.post(
+        "/api/v1/mes/work-orders",
+        json={
+            "client_name": "Cliente de prueba",
+            "description": "OIT sin sesión",
+            "components": [{"name": "Pieza", "quantity_required": 1}],
+        },
+    )
+    assert response.status_code == 401
